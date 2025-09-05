@@ -9,9 +9,10 @@ import cv2
 from PIL import Image
 
 from time import sleep
+from pynput import mouse
 
-TESSERACT_PATH = 'C:\Program Files (x86)\Tesseract-OCR'
-TESSDATA_PATH = 'C:\Program Files (x86)\Tesseract-OCR\\tessdata'
+TESSERACT_PATH = 'C:\Program Files\Tesseract-OCR'
+TESSDATA_PATH = 'C:\Program Files\Tesseract-OCR\\tessdata'
 
 os.environ["PATH"] += os.pathsep + TESSERACT_PATH
 os.environ["TESSDATA_PREFIX"] = TESSDATA_PATH
@@ -38,25 +39,30 @@ print("Will use lang '%s'" % (lang))
 # ↑PyOCR使う時の呪文、おまじない。
 
 # 範囲指定のためのマウスカーソル座標取得関数。メッセージボックスの左上隅と右下隅で囲まれた範囲をスクリーンショット
-def PosGet():
-    # クリックを検知したらそこの座標を取得　←なんか難しいからやめました
-    # 3秒待ってからカーソル位置の座標を取得
-    print("左上隅の座標を取得します")
-    sleep(3)
-    x1, y1 = pyautogui.position()
-    print(str(x1) + "," + str(y1))
+def get_click_position(message):
+    print(message + " クリックしてください...")
+    pos = []
 
-    # 3秒待ってからカーソル位置の座標を取得
-    print("右下隅の座標を取得します")
-    sleep(3)
-    x2, y2 = pyautogui.position()
-    print(str(x2) + "," + str(y2))
+    def on_click(x, y, button, pressed):
+        if pressed:
+            pos.extend([x, y])
+            return False  # Stop listener
+
+    with mouse.Listener(on_click=on_click) as listener:
+        listener.join()
+    return pos
+
+def PosGet():
+    x1, y1 = get_click_position("左上隅の座標")
+    print(f"{x1},{y1}")
+    x2, y2 = get_click_position("右下隅の座標")
+    print(f"{x2},{y2}")
 
     # PyAutoGuiのregionの仕様のため、相対座標を求める
     x2 -= x1
     y2 -= y1
 
-    return(x1, y1, x2, y2)
+    return (x1, y1, x2, y2)
 
 # スクリーンショット撮影 → グレースケール → 画像を拡大
 def ScreenShot(x1, y1, x2, y2):
